@@ -125,7 +125,9 @@ def ocr_page(page: Image):
               for _, g in df.groupby("block_num")]
     groups = list(itertools.chain.from_iterable(split_group(g) for g in groups))
 
-    texts = [" ".join(g["text"]) for g in groups]
+    texts = ["\n".join(" ".join(line.text) for _, line in g.groupby("line_num"))
+             for g in groups]
+    # texts = [" ".join(g["text"]) for g in groups]
     for g, t in zip(groups, texts):
         print(g)
         print(t)
