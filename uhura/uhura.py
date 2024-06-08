@@ -35,20 +35,6 @@ def draw_text(group: pd.DataFrame, text: str, draw: ImageDraw):
     font_size  = group.height.mean()
     font = ImageFont.load_default(font_size)
 
-    # print(group)
-    # def recalculate_line_numbers():
-    #     line_num = group.iloc[0].line_num
-    #     yield line_num
-    #     for (i, prev_row), (j, row) in pairwise(group.iterrows()):
-    #         # if row.line_num > prev_row.line_num:
-    #         if row.top > prev_row.top + prev_row.height * 0.5:
-    #             line_num += 1
-    #         yield line_num
-
-    # stuff = list(recalculate_line_numbers())
-    # print(stuff)
-    # group["line_num"] = stuff
-
     lines = [line for _, line in group.groupby("line_num")]
     line_extents = [(line.left.min(), max(seg.left + seg.width for _, seg in line.iterrows()))
                     for line in lines]
@@ -121,8 +107,22 @@ def ocr_page(page: Image):
 
     print(df.to_string())
 
-    groups = [g.sort_values(by=["line_num", "word_num"])
-              for _, g in df.groupby("block_num")]
+    def recalculate_line_numbers(group):
+        line_num = group.iloc[0].line_num
+        yield line_num
+        for (i, prev_row), (j, row) in pairwise(group.iterrows()):
+            # if row.line_num > prev_row.line_num:
+            if row.top > prev_row.top + prev_row.height * 0.5:
+                line_num += 1
+            yield line_num
+
+    def transform_group(group):
+        print(group)
+        group["line_num"] = list(recalculate_line_numbers(group))
+        group.sort_values(by=["line_num", "word_num"], inplace=True)
+        return group
+
+    groups = [transform_group(g) for _, g in df.groupby("block_num")]
     groups = list(itertools.chain.from_iterable(split_group(g) for g in groups))
 
     texts = ["\n".join(" ".join(line.text) for _, line in g.groupby("line_num"))
