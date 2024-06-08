@@ -32,8 +32,8 @@ def pdf_to_images(path: Path):
     return pages
 
 
-def draw_text(group: pd.DataFrame, text: str, draw: ImageDraw):
-    font_size  = group.height.mean()
+def draw_text(group: pd.DataFrame, text: str, draw: ImageDraw.ImageDraw):
+    font_size = group["height"].mean()
     font = ImageFont.load_default(font_size)
 
     lines = [line for _, line in group.groupby("line_num")]
@@ -62,7 +62,7 @@ def draw_text(group: pd.DataFrame, text: str, draw: ImageDraw):
         draw.rounded_rectangle(
             xy=[(left, top), (right, bottom)],
             fill=(255, 255, 255),
-            radius=font_size * 0.2,
+            radius=int(font_size * 0.2),
         )
         draw.text(
             xy=(line.left.min(), line.top.min()),
@@ -94,7 +94,7 @@ def split_group(group: pd.DataFrame):
 
 
 
-def ocr_page(page: Image):
+def ocr_page(page: Image.Image):
     # df = pd.read_csv("/tmp/test_data.csv")
     df = pytesseract.image_to_data(page, lang=FROM_LANGUAGE,
                                    output_type=pytesseract.Output.DATAFRAME)
@@ -111,7 +111,7 @@ def ocr_page(page: Image):
     def recalculate_line_numbers(group):
         line_num = group.iloc[0].line_num
         yield line_num
-        for (i, prev_row), (j, row) in pairwise(group.iterrows()):
+        for (i, prev_row), (_, row) in pairwise(group.iterrows()):
             # if row.line_num > prev_row.line_num:
             if row.top > prev_row.top + prev_row.height * 0.5:
                 line_num += 1
