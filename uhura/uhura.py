@@ -133,8 +133,9 @@ def ocr_page(page: Image.Image):
         print(g)
         print(t)
 
-    translations = [result.text for result in translator.translate_text(
-        texts, source_lang="de", target_lang="en-gb")]
+    translations = translator.translate_text(texts, source_lang="de",
+                                             target_lang="en-gb")
+    translations = [result.text.replace("\n", " ") for result in translations]
     print(translations)
 
     draw = ImageDraw.Draw(page)
