@@ -144,9 +144,16 @@ def ocr_page(page: Image.Image):
 
     return page
 
+
 @click.group()
 def main():
     pass
+
+
+@main.command()
+@click.argument("file")
+def translate_image(file):
+    ocr_page(Image.open(file))
 
 
 @main.command()
