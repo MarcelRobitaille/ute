@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import cast
 from itertools import pairwise
 
+import click
 import numpy as np
 import pandas as pd
 import deepl
@@ -142,9 +143,15 @@ def ocr_page(page: Image):
 
     return page
 
+@click.group()
 def main():
-    # path = Path(sys.argv[1])
-    path = Path("/tmp/2024-05-28 Zoll EORI number.pdf")
+    pass
+
+
+@main.command()
+@click.argument("file")
+def translate_pdf(file):
+    path = Path(file)
     pages = pdf_to_images(path=path)
     # for i, page in enumerate(pages):
     #     ocr_page(page)
