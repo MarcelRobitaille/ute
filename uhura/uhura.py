@@ -1,7 +1,5 @@
-import sys
 import itertools
 from pathlib import Path
-from typing import cast
 from itertools import pairwise
 
 import click
@@ -117,13 +115,23 @@ def ocr_page(page: Image.Image):
                 line_num += 1
             yield line_num
 
+    def filter_group(group):
+        # Ignore vertical text for now. Usually it's not useful, just like a
+        # serial number on the side.
+        is_vertical = group[["left", "top"]].diff().dropna() \
+            .apply(lambda row: abs(row.top) > abs(row.left), axis=1).median()
+        if is_vertical:
+            print("Ignoring vertical group", group)
+        return not is_vertical
+
     def transform_group(group):
         print(group)
         group["line_num"] = list(recalculate_line_numbers(group))
         group.sort_values(by=["line_num", "word_num"], inplace=True)
         return group
 
-    groups = [transform_group(g) for _, g in df.groupby("block_num")]
+    groups = [transform_group(g) for _, g in df.groupby("block_num")
+              if filter_group(g)]
     groups = list(itertools.chain.from_iterable(split_group(g) for g in groups))
 
     texts = ["\n".join(" ".join(line.text) for _, line in g.groupby("line_num"))
