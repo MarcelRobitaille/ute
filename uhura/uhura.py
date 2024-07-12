@@ -12,6 +12,8 @@ from PIL import ImageDraw
 import pytesseract
 from pdf2image import convert_from_path
 
+from . import heuristics
+
 
 FROM_LANGUAGE = "deu"
 ROOT = Path(__file__).parent.parent
@@ -91,7 +93,6 @@ def split_group(group: pd.DataFrame):
     return [pd.DataFrame(r) for r in result]
 
 
-
 def ocr_page(page: Image.Image):
     # df = pd.read_csv("/tmp/test_data.csv")
     df = pytesseract.image_to_data(page, lang=FROM_LANGUAGE,
@@ -136,6 +137,24 @@ def ocr_page(page: Image.Image):
 
     texts = ["\n".join(" ".join(line.text) for _, line in g.groupby("line_num"))
              for g in groups]
+
+    def transform_text(text: str):
+        """
+        Handle paragraphs separately for Deepl. It does not handle newlines well
+        within paragraphs. It adds extra words. If the text is a paragraph,
+        remove the newlines.
+        """
+
+        if heuristics.is_paragraph(text):
+            text = "\n".join(line.strip() for line in text.split("\n"))
+
+            # Join words broken onto two lines then join lines by spaces
+            return text.replace("-\n", "").replace("\n", " " )
+
+        return text
+
+    texts = [transform_text(text) for text in texts]
+
     # texts = [" ".join(g["text"]) for g in groups]
     for g, t in zip(groups, texts):
         print(g)
