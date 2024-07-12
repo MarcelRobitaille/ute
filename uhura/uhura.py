@@ -1,6 +1,8 @@
 import itertools
 from pathlib import Path
 from itertools import pairwise
+from typing import Optional
+from abc import ABC, abstractmethod
 
 import click
 import numpy as np
@@ -11,6 +13,8 @@ from PIL import ImageFont
 from PIL import ImageDraw
 import pytesseract
 from pdf2image import convert_from_path
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 
 from . import heuristics
 
@@ -19,12 +23,91 @@ FROM_LANGUAGE = "deu"
 ROOT = Path(__file__).parent.parent
 
 
+class Renderer(ABC):
+    @abstractmethod
+    def set_page(self, page: Image.Image):
+        ...
+
+    @abstractmethod
+    def render_text(self, text: str, x: float, y: float, font_size: int):
+        ...
+
+    @abstractmethod
+    def render_rect(self, left: float, right: float, top: float, bottom: float,
+                    radius: int):
+        ...
+
+
+class PillowRenderer(Renderer):
+    def __init__(self):
+        self.draw: Optional[ImageDraw.ImageDraw] = None
+
+    def set_page(self, page: Image.Image):
+        self.draw = ImageDraw.Draw(page)
+
+    def render_rect(self, left: float, right: float, top: float, bottom: float,
+                    radius: int):
+        assert self.draw
+
+        self.draw.rounded_rectangle(
+            xy=((left, top), (right, bottom)),
+            fill=(255, 255, 255),
+            radius=radius,
+        )
+
+    def render_text(self, text: str, x: float, y: float, font_size: int):
+        assert self.draw
+
+        font = ImageFont.load_default(font_size)
+        self.draw.text(xy=(x, y), text=text, fill=(0, 0, 0), font=font)
+
+
+class PDFRenderer(Renderer):
+    def __init__(self, output_file: str):
+        self.canvas = canvas.Canvas(output_file)
+        self.page: Optional[Image.Image] = None
+
+    def set_page(self, page: Image.Image):
+        self.canvas.setPageSize((page.width, page.height))
+        self.canvas.drawImage(ImageReader(page), x=0, y=0)
+        self.page = page
+
+    def render_rect(self, left: float, right: float, top: float, bottom: float,
+                    radius: int):
+        assert self.page
+        x = left
+        width = right - left
+        height = bottom - top
+        y = self.page.height - top - height
+
+        self.canvas.setFillColorRGB(1, 1, 1)
+        self.canvas.roundRect(
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            radius=radius,
+            stroke=0,
+            fill=1,
+        )
+
+    def render_text(self, text: str, x: float, y: float, font_size: int):
+        assert self.page
+
+        self.canvas.setFillColorRGB(0, 0, 0)
+        self.canvas.setFontSize(font_size)
+        self.canvas.drawString(x, self.page.height - y - font_size, text)
+
+    def save(self):
+        self.canvas.save()
+
+    def next_page(self):
+        self.canvas.showPage()
+
 def get_auth_key():
     with open(ROOT / "api_key.txt") as f:
         return f.read().strip()
 
-# font = ImageFont.truetype("sans-serif.ttf", 16)
-font = ImageFont.load_default(16)
 translator = deepl.Translator(get_auth_key())
 
 def pdf_to_images(path: Path):
@@ -32,7 +115,7 @@ def pdf_to_images(path: Path):
     return pages
 
 
-def draw_text(group: pd.DataFrame, text: str, draw: ImageDraw.ImageDraw):
+def draw_text(group: pd.DataFrame, text: str, renderer: Renderer):
     font_size = group["height"].mean()
     font = ImageFont.load_default(font_size)
 
@@ -55,20 +138,17 @@ def draw_text(group: pd.DataFrame, text: str, draw: ImageDraw.ImageDraw):
     text_lines = split_into_lines(line_widths=line_widths, words=text.split(" "))
     for text, line, extent in itertools.zip_longest(text_lines, lines, line_extents):
         text = text or ""
-        top = line.top.min()
-        left = extent[0]
-        right = max(extent[1], left + font.getlength(text))
-        bottom = line.top.min() + font_size * 1.2
-        draw.rounded_rectangle(
-            xy=[(left, top), (right, bottom)],
-            fill=(255, 255, 255),
-            radius=int(font_size * 0.2),
-        )
-        draw.text(
-            xy=(line.left.min(), line.top.min()),
+        top: float = line.top.min()
+        left: float = extent[0]
+        right: float = max(extent[1], left + font.getlength(text))
+        bottom: float = line.top.min() + font_size * 1.2
+        renderer.render_rect(top=top, left=left, right=right, bottom=bottom,
+                             radius=int(font_size * 0.2))
+        renderer.render_text(
+            x=line.left.min(),
+            y=line.top.min(),
             text=text,
-            fill=(0, 0, 0),
-            font=font,
+            font_size=font_size,
         )
 
 
@@ -93,7 +173,9 @@ def split_group(group: pd.DataFrame):
     return [pd.DataFrame(r) for r in result]
 
 
-def ocr_page(page: Image.Image):
+def ocr_page(page: Image.Image, renderer: Renderer):
+    renderer.set_page(page)
+
     # df = pd.read_csv("/tmp/test_data.csv")
     df = pytesseract.image_to_data(page, lang=FROM_LANGUAGE,
                                    output_type=pytesseract.Output.DATAFRAME)
@@ -165,9 +247,8 @@ def ocr_page(page: Image.Image):
     translations = [result.text.replace("\n", " ") for result in translations]
     print(translations)
 
-    draw = ImageDraw.Draw(page)
     for translation, group in zip(translations, groups):
-        draw_text(group=group, text=translation, draw=draw)
+        draw_text(group=group, text=translation, renderer=renderer)
 
     return page
 
@@ -180,23 +261,22 @@ def main():
 @main.command()
 @click.argument("file")
 def translate_image(file):
-    ocr_page(Image.open(file))
+    ocr_page(page=Image.open(file), renderer=PillowRenderer())
 
 
 @main.command()
 @click.argument("file")
 def translate_pdf(file):
+    output_file = "/tmp/test.pdf"
     path = Path(file)
     pages = pdf_to_images(path=path)
-    # for i, page in enumerate(pages):
-    #     ocr_page(page)
-    #     page.save(f"/tmp/uhura/{path.name}_page{i}.png")
-    pages = [ocr_page(page) for page in pages]
-    pages[0].save("/tmp/test.pdf", "PDF", resolution=100.0, save_all=True,
-                  append_images=pages[1:])
+
+    renderer = PDFRenderer(output_file=output_file)
+    for page in pages:
+        ocr_page(page=page, renderer=renderer)
+        renderer.next_page()
+    renderer.save()
 
 
 if __name__ == "__main__":
     main()
-
-# ocr_page(Image.open("/tmp/zoll.pdf_page0.png"))
