@@ -1,3 +1,4 @@
 venv
 api_key.txt
 typings
+__pycache__
