@@ -4,6 +4,7 @@ from itertools import pairwise
 from typing import Optional
 from abc import ABC, abstractmethod
 
+import cv2
 import click
 import numpy as np
 import pandas as pd
@@ -176,8 +177,24 @@ def split_group(group: pd.DataFrame):
 def ocr_page(page: Image.Image, renderer: Renderer):
     renderer.set_page(page)
 
+    clean_image = page.copy()
+    qrCodeDetector = cv2.QRCodeDetector()
+    _, codes, _ = qrCodeDetector.detectAndDecode(np.array(page))
+    for qrcode in ([] if codes is None else codes):
+        left = qrcode[:, 0].min()
+        right = qrcode[:, 0].max()
+        top = qrcode[:, 1].min()
+        bottom = qrcode[:, 1].max()
+        width = right - left
+        height = bottom - top
+        draw = ImageDraw.Draw(clean_image)
+        draw.rectangle((
+            (left - width * 0.1, top - height * 0.1),
+            (right + width * 0.1, bottom + height * 0.1)
+        ), fill="white")
+
     # df = pd.read_csv("/tmp/test_data.csv")
-    df = pytesseract.image_to_data(page, lang=FROM_LANGUAGE,
+    df = pytesseract.image_to_data(clean_image, lang=FROM_LANGUAGE,
                                    output_type=pytesseract.Output.DATAFRAME)
     df.to_csv("/tmp/test_data.csv", index=False)
     assert {1} == set(df["page_num"])
