@@ -6,6 +6,11 @@ All of the pieces of desktop software I have tried put the translation in a sepa
 or do not properly overlay it onto the original image, making it hard to understand the structure of the document.
 Unlike these phone apps, UTE is an open-source, embeddable engine, allowing it to be used in other tools.
 
+## How it works
+
+The pipeline is essentially: [tesseract](https://github.com/tesseract-ocr/tesseract) (OCR) -> [Deepl API](https://www.deepl.com) -> annotate image/document.
+Other translation services to come.
+
 ## Usage
 
 Download the repo and install dependencies (proper packaging to come):
@@ -26,6 +31,7 @@ python -m ute.ute translate-pdf <Source> <Destination>
 
 - [x] Engine and basic CLI
 - [ ] Integration into [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx/discussions/269)
+- [ ] Other translation engines (like libretranslate)
 - [ ] Screen overlay to translate a region of your screen, like taking a screenshot
 - [ ] Live screen overlay. Like above, but live instead of one time. This will probably require major performance improvements and diffing of the changed regions of the image
 
