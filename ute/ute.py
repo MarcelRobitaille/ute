@@ -276,17 +276,19 @@ def main():
 
 
 @main.command()
-@click.argument("file")
-def translate_image(file):
-    ocr_page(page=Image.open(file), renderer=PillowRenderer())
+@click.argument("input-file", required=True)
+@click.argument("output-file", required=True)
+def translate_image(input_file: str, output_file: str):
+    result = ocr_page(page=Image.open(input_file), renderer=PillowRenderer())
+    result.save(output_file)
 
 
 @main.command()
-@click.argument("file")
-def translate_pdf(file):
-    output_file = "/tmp/test.pdf"
-    path = Path(file)
-    pages = pdf_to_images(path=path)
+@click.argument("input-file", required=True)
+@click.argument("output-file", required=True)
+def translate_pdf(input_file, output_file):
+    input_path = Path(input_file)
+    pages = pdf_to_images(path=input_path)
 
     renderer = PDFRenderer(output_file=output_file)
     for page in pages:
