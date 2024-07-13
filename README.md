@@ -6,6 +6,22 @@ All of the pieces of desktop software I have tried put the translation in a sepa
 or do not properly overlay it onto the original image, making it hard to understand the structure of the document.
 Unlike these phone apps, UTE is an open-source, embeddable engine, allowing it to be used in other tools.
 
+## Usage
+
+Download the repo and install dependencies (proper packaging to come):
+```bash
+git clone https://github.com/MarcelRobitaille/ute.git
+cd ute
+pip install -r requirements.txt
+```
+
+Currently the command-line interface supports two commands.
+
+```bash
+python -m ute.ute translate-image <Source> <Destination>
+python -m ute.ute translate-pdf <Source> <Destination>
+```
+
 ## Roadmap
 
 - [x] Engine and basic CLI
@@ -22,3 +38,4 @@ This section tracks some general improvements that do not really fit as roadmap 
 - [ ] Performance (profiling or rewrite in not python)
 - [ ] Better config handling
 - [ ] Straighten
+- [ ] Packaging in package repositories
