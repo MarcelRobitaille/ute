@@ -1,7 +1,7 @@
 import itertools
 from pathlib import Path
 from itertools import pairwise
-from typing import Optional, Sequence, Union, IO
+from typing import Optional, Sequence, IO
 from abc import ABC, abstractmethod
 
 import cv2
@@ -168,12 +168,13 @@ def split_group(group: pd.DataFrame):
     return [pd.DataFrame(r) for r in result]
 
 
-def ocr_page(page: Image.Image, renderer: Renderer):
-    renderer.set_page(page)
+def translate_image(image: Image.Image, renderer: Optional[Renderer] = None):
+    renderer = PillowRenderer() if renderer is None else renderer
+    renderer.set_page(image)
 
-    clean_image = page.copy()
+    clean_image = image.copy()
     qrCodeDetector = cv2.QRCodeDetector()
-    _, codes, _ = qrCodeDetector.detectAndDecode(np.array(page))
+    _, codes, _ = qrCodeDetector.detectAndDecode(np.array(image))
     for qrcode in ([] if codes is None else codes):
         left = qrcode[:, 0].min()
         right = qrcode[:, 0].max()
@@ -261,14 +262,14 @@ def ocr_page(page: Image.Image, renderer: Renderer):
     for translation, group in zip(translations, groups):
         draw_text(group=group, text=translation, renderer=renderer)
 
-    return page
+    return image
 
 
 def translate_pdf_pages(pages: Sequence[Image.Image], output: str | IO[bytes]):
     renderer = PDFRenderer(output=output)
 
     for page in pages:
-        ocr_page(page=page, renderer=renderer)
+        translate_image(image=page, renderer=renderer)
         renderer.next_page()
 
     renderer.save()

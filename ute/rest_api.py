@@ -5,7 +5,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.responses import Response
 import pdf2image
 
-from .ute import translate_pdf_pages, ocr_page, PillowRenderer
+from . import ute
 
 app = FastAPI()
 
@@ -15,8 +15,7 @@ async def translate_image(image: UploadFile = File(...)):
     contents = Image.open(io.BytesIO(await image.read()))
     output = io.BytesIO()
 
-    ocr_page(page=contents, renderer=PillowRenderer()) \
-        .save(output, format='PNG')
+    ute.translate_image(image=contents).save(output, format='PNG')
 
     return Response(content=output.getvalue(), media_type="image/png")
 
@@ -33,7 +32,7 @@ async def translate_pdf(pdf: UploadFile = File(...)):
                             detail="Could not extract PDF pages.")
 
     output = io.BytesIO()
-    translate_pdf_pages(pages=pages, output=output)
+    ute.translate_pdf_pages(pages=pages, output=output)
 
     return Response(content=output.getvalue(), media_type="application/pdf")
 
