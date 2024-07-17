@@ -5,7 +5,6 @@ from typing import Optional
 from abc import ABC, abstractmethod
 
 import cv2
-import click
 import numpy as np
 import pandas as pd
 import deepl
@@ -13,7 +12,6 @@ from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 import pytesseract
-from pdf2image import convert_from_path
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
@@ -110,10 +108,6 @@ def get_auth_key():
         return f.read().strip()
 
 translator = deepl.Translator(get_auth_key())
-
-def pdf_to_images(path: Path):
-    pages = convert_from_path(path, 500)
-    return pages
 
 
 def draw_text(group: pd.DataFrame, text: str, renderer: Renderer):
@@ -270,32 +264,11 @@ def ocr_page(page: Image.Image, renderer: Renderer):
     return page
 
 
-@click.group()
-def main():
-    pass
-
-
-@main.command()
-@click.argument("input-file", required=True)
-@click.argument("output-file", required=True)
-def translate_image(input_file: str, output_file: str):
-    result = ocr_page(page=Image.open(input_file), renderer=PillowRenderer())
-    result.save(output_file)
-
-
-@main.command()
-@click.argument("input-file", required=True)
-@click.argument("output-file", required=True)
-def translate_pdf(input_file, output_file):
-    input_path = Path(input_file)
-    pages = pdf_to_images(path=input_path)
-
+def translate_pdf_pages(pages: Sequence[Image.Image], output_file: str):
     renderer = PDFRenderer(output_file=output_file)
+
     for page in pages:
         ocr_page(page=page, renderer=renderer)
         renderer.next_page()
+
     renderer.save()
-
-
-if __name__ == "__main__":
-    main()
