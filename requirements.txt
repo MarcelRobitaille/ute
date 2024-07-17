@@ -1,5 +1,6 @@
 click
 deepl
+fastapi
 numpy
 opencv-python
 pandas

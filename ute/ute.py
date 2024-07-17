@@ -1,7 +1,7 @@
 import itertools
 from pathlib import Path
 from itertools import pairwise
-from typing import Optional
+from typing import Optional, Sequence, Union, IO
 from abc import ABC, abstractmethod
 
 import cv2
@@ -62,8 +62,8 @@ class PillowRenderer(Renderer):
 
 
 class PDFRenderer(Renderer):
-    def __init__(self, output_file: str):
-        self.canvas = canvas.Canvas(output_file)
+    def __init__(self, output: str | IO[bytes]):
+        self.canvas = canvas.Canvas(output)
         self.page: Optional[Image.Image] = None
 
     def set_page(self, page: Image.Image):
@@ -264,8 +264,8 @@ def ocr_page(page: Image.Image, renderer: Renderer):
     return page
 
 
-def translate_pdf_pages(pages: Sequence[Image.Image], output_file: str):
-    renderer = PDFRenderer(output_file=output_file)
+def translate_pdf_pages(pages: Sequence[Image.Image], output: str | IO[bytes]):
+    renderer = PDFRenderer(output=output)
 
     for page in pages:
         ocr_page(page=page, renderer=renderer)

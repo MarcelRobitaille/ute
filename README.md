@@ -27,9 +27,15 @@ python -m ute.ute translate-image <Source> <Destination>
 python -m ute.ute translate-pdf <Source> <Destination>
 ```
 
+Starting the REST API:
+```bash
+fastapi dev ute --app fastapi_app
+```
+
 ## Roadmap
 
 - [x] Engine and basic CLI
+- [x] Rest API
 - [ ] Integration into [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx/discussions/269)
 - [ ] Other translation engines (like libretranslate)
 - [ ] Screen overlay to translate a region of your screen, like taking a screenshot
@@ -38,10 +44,10 @@ python -m ute.ute translate-pdf <Source> <Destination>
 ## Other todos
 
 UTE is a work in progress.
-For example, it only works with pre-straightened images.
+For example, it only works with pre-straightened (de-skewed) images.
 This section tracks some general improvements that do not really fit as roadmap items.
 
 - [ ] Performance (profiling or rewrite in not python)
 - [ ] Better config handling
-- [ ] Straighten
+- [ ] Straighten (de-skew)
 - [ ] Packaging in package repositories

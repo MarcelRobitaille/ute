@@ -31,7 +31,7 @@ def translate_image(input_file: str, output_file: str):
 def translate_pdf(input_file, output_file):
     input_path = Path(input_file)
     pages = pdf_to_images(path=input_path)
-    translate_pdf_pages(pages=pages, output_file=output_file)
+    translate_pdf_pages(pages=pages, output=output_file)
 
 
 @cli.command()
