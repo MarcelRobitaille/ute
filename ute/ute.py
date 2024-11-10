@@ -3,6 +3,7 @@ from pathlib import Path
 from itertools import pairwise
 from typing import Optional, Sequence, IO
 from abc import ABC, abstractmethod
+import re
 
 import cv2
 import numpy as np
@@ -130,7 +131,7 @@ def draw_text(group: pd.DataFrame, text: str, renderer: Renderer):
                 ]
         return [" ".join(words)]
 
-    text_lines = split_into_lines(line_widths=line_widths, words=text.split(" "))
+    text_lines = split_into_lines(line_widths=line_widths, words=re.split(r"\s", text))
     for text, line, extent in itertools.zip_longest(text_lines, lines, line_extents):
         text = text or ""
         top: float = line.top.min()
