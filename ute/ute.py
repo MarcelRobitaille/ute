@@ -114,7 +114,7 @@ def draw_text(group: pd.DataFrame, text: str, renderer: Renderer):
     font_size = group["height"].mean()
     font = ImageFont.load_default(font_size)
 
-    lines = [line for _, line in group.groupby("line_num")]
+    lines = [line for _, line in group.groupby(["par_num", "line_num"])]
     line_extents = [(line.left.min(), max(seg.left + seg.width for _, seg in line.iterrows()))
                     for line in lines]
     line_widths = [line[1] - line[0] for line in line_extents]
@@ -229,7 +229,8 @@ def translate_image(image: Image.Image, renderer: Optional[Renderer] = None):
               if filter_group(g)]
     groups = list(itertools.chain.from_iterable(split_group(g) for g in groups))
 
-    texts = ["\n".join(" ".join(line.text) for _, line in g.groupby("line_num"))
+    texts = ["\n".join(" ".join(line.text)
+                       for _, line in g.groupby(["par_num", "line_num"]))
              for g in groups]
 
     def transform_text(text: str):
