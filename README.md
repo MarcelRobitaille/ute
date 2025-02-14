@@ -32,6 +32,10 @@ Starting the REST API:
 fastapi dev ute --app fastapi_app
 ```
 
+Requirements that are not in pip
+- poppler
+- tesseract
+
 ## Roadmap
 
 - [x] Engine and basic CLI
