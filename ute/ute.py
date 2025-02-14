@@ -211,15 +211,6 @@ def translate_image(image: Image.Image, renderer: Optional[Renderer] = None):
                 line_num += 1
             yield line_num
 
-    def filter_group(group):
-        # Ignore vertical text for now. Usually it's not useful, just like a
-        # serial number on the side.
-        is_vertical = group[["left", "top"]].diff().dropna() \
-            .apply(lambda row: abs(row.top) > abs(row.left), axis=1).median()
-        if is_vertical:
-            print("Ignoring vertical group", group)
-        return not is_vertical
-
     def transform_group(group):
         print(group)
         group["line_num"] = list(recalculate_line_numbers(group))
@@ -227,7 +218,7 @@ def translate_image(image: Image.Image, renderer: Optional[Renderer] = None):
         return group
 
     groups = [transform_group(g) for _, g in df.groupby("block_num")
-              if filter_group(g)]
+              if heuristics.filter_group(g)]
     groups = list(itertools.chain.from_iterable(split_group(g) for g in groups))
 
     texts = ["\n".join(" ".join(line.text)
